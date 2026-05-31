@@ -1,0 +1,26 @@
+sequenceDiagram
+    actor U as Usuario
+    participant B as Navegador
+    participant A as auth.login
+    participant S as Storage
+    participant R as Redis/Sirope
+    participant L as Flask-Login
+
+    Note over R: Al arrancar: seed_demo_user / create_app crea DemoUserEntity si no existe
+
+    U->>B: GET /login
+    B->>A: petición
+    A-->>B: login.html
+
+    U->>B: POST /login (usuario, contraseña)
+    B->>A: formulario
+    A->>S: check_password(usuario, contraseña)
+    S->>R: find_first DemoUserEntity (solo lectura)
+    alt credenciales válidas
+        S-->>A: true
+        A->>L: login_user (sesión en cookie)
+        A-->>B: 302 → /dashboard
+    else credenciales inválidas
+        S-->>A: false
+        A-->>B: login.html + flash error
+    end

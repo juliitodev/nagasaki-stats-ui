@@ -1,0 +1,22 @@
+sequenceDiagram
+    actor U as Usuario
+    participant B as Navegador
+    participant JS as dashboard.js
+    participant ER as entities.save_view
+    participant S as Storage
+    participant SI as Sirope
+    participant R as Redis
+
+    U->>B: Guardar vista (panel lateral)
+    B->>JS: POST /api/views
+    JS->>ER: name, entityId, attribute, metric
+    ER->>ER: login_required
+    alt faltan datos
+        ER-->>JS: 400 JSON
+    else válido
+        ER->>S: save_view(SavedView)
+        S->>SI: save SavedViewEntity
+        SI->>R: persistir OID
+        ER-->>JS: 200 ok + item
+        JS-->>B: mensaje en panel
+    end

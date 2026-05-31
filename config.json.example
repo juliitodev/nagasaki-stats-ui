@@ -1,0 +1,5 @@
+{
+  "SECRET_KEY": "change-me-demo",
+  "DEMO_USER": "profesor",
+  "DEMO_PASSWORD": "profesor123"
+}

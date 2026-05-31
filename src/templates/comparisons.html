@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="filter-hint" style="margin:0 0 1.25rem;">Conjuntos de fuentes que comparas a menudo. También puedes guardar desde la pantalla Comparar.</p>
+
+<article class="form-panel" style="margin-bottom:1.5rem;">
+  <h2 style="font-size:1rem;margin:0 0 0.75rem;">Nueva comparativa</h2>
+  <form method="post" action="{{ url_for('stats.comparisons_page') }}">
+    <label for="cmp-name">Nombre</label>
+    <input id="cmp-name" name="name" required placeholder="Ej. Plantas solares">
+    <label for="cmp-attr-new">Magnitud</label>
+    <select id="cmp-attr-new" name="attribute" required>
+      {% for a, label in attribute_labels | dictsort %}
+      <option value="{{ a }}">{{ label }}</option>
+      {% endfor %}
+    </select>
+    <label for="cmp-metric-new">Indicador</label>
+    <select id="cmp-metric-new" name="metric">
+      {% for m in ranking_metrics %}
+      <option value="{{ m }}">{{ metric_labels.get(m, m) }}</option>
+      {% endfor %}
+    </select>
+    <label>Fuentes (marca al menos 2)</label>
+    <ul class="entity-checklist" id="cmp-pick-list">
+      {% for e in catalog_entities %}
+      <li data-attrs="{{ e.attributes | join(',') }}">
+        <label><input type="checkbox" name="entityIds" value="{{ e.entityId }}"> {{ e.displayName }}</label>
+      </li>
+      {% endfor %}
+    </ul>
+    <button type="submit" class="btn-save-action btn-save-action--primary">Guardar comparativa</button>
+  </form>
+</article>
+
+<div class="card-grid" data-crud-list>
+  {% for c in comparisons %}
+  <article class="data-card" data-card>
+    <span class="data-card-type">Comparativa</span>
+    <h3>{{ c.name }}</h3>
+    <ul class="data-card-metrics">
+      <li>{{ attribute_labels.get(c.attribute, c.attribute) }} · {{ metric_labels.get(c.metric, c.metric) }}</li>
+      <li>{{ c.id_list() | length }} fuentes</li>
+    </ul>
+    <div class="row-actions" style="justify-content:flex-start;">
+      <a class="btn-open" href="{{ url_for('stats.compare_page', attribute=c.attribute, metric=c.metric) }}{% for eid in c.id_list() %}&entityIds={{ eid }}{% endfor %}">Abrir</a>
+      <button type="button" class="outline secondary btn-ghost" data-delete-url="{{ url_for('entities.delete_comparison', comp_id=c.id) }}">Eliminar</button>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+<div class="empty-hint" id="crud-empty" style="{% if comparisons %}display:none;{% endif %}">
+  <p>Sin comparativas guardadas.</p>
+  <a class="btn-open" href="{{ url_for('stats.compare_page') }}">Ir a comparar</a>
+</div>
+<span id="msg" class="feedback" role="status"></span>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const attrSel = document.getElementById("cmp-attr-new");
+  const list = document.getElementById("cmp-pick-list");
+  if (!attrSel || !list) return;
+  function filter() {
+    const attr = attrSel.value;
+    list.querySelectorAll("li[data-attrs]").forEach((li) => {
+      const attrs = (li.getAttribute("data-attrs") || "").split(",");
+      const show = attrs.includes(attr);
+      li.style.display = show ? "" : "none";
+      if (!show) li.querySelector("input").checked = false;
+    });
+  }
+  attrSel.addEventListener("change", filter);
+  filter();
+})();
+</script>
+<script src="{{ url_for('static', filename='js/crud-list.js') }}"></script>
+{% endblock %}

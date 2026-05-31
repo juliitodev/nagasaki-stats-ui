@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<article class="panel">
+  <h1>Página no encontrada</h1>
+  <p>La ruta solicitada no existe en Nagasaki Analytics.</p>
+  <p><a href="{{ url_for('stats.dashboard') }}" class="btn-open">Volver al panel</a></p>
+</article>
+{% endblock %}

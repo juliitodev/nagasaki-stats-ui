@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="filter-hint" style="margin:0 0 1.25rem;">Si la <strong>media</strong> de una magnitud sale del rango que definas, verás un aviso en el explorador. Debes indicar <strong>al menos un umbral</strong> (mínimo, máximo o ambos).</p>
+
+<article class="form-panel" style="margin-bottom:1.5rem;">
+  <h2 style="font-size:1rem;margin:0 0 0.75rem;">Nueva alerta</h2>
+  <form id="frmAlert" method="post" action="{{ url_for('stats.alerts_page') }}" onsubmit="return validateAlert();">
+    <div id="dvError" class="alert-inline" role="alert" hidden style="margin-bottom:0.75rem;"></div>
+    <label for="alert-name">Nombre</label>
+    <input id="alert-name" name="name" required placeholder="Ej. Potencia alta">
+    {% with fid = "alert-entity" %}
+    {% include "partials/entity_select.html" %}
+    {% endwith %}
+    <label for="alert-attr">Magnitud</label>
+    <input id="alert-attr" name="attribute" required placeholder="powerKw">
+    <label for="alert-min">Mínimo</label>
+    <input id="alert-min" name="minValue" type="number" step="any" placeholder="p. ej. 50">
+    <label for="alert-max">Máximo</label>
+    <input id="alert-max" name="maxValue" type="number" step="any" placeholder="p. ej. 500">
+    <p class="filter-hint">Obligatorio: rellena el mínimo, el máximo o los dos (mín ≤ máx).</p>
+    <button type="submit" class="btn-save-action btn-save-action--primary">Guardar alerta</button>
+  </form>
+</article>
+
+<div class="card-grid" data-crud-list>
+  {% for a in alerts %}
+  <article class="data-card" data-card>
+    <span class="data-card-type">Alerta</span>
+    <h3>{{ a.name }}</h3>
+    <ul class="data-card-metrics">
+      <li>{{ entity_names.get(a.entity_id, a.entity_id) }}</li>
+      <li>{{ attribute_labels.get(a.attribute, a.attribute) }}</li>
+      {% if a.min_value is not none %}<li>Mín: {{ a.min_value }}</li>{% endif %}
+      {% if a.max_value is not none %}<li>Máx: {{ a.max_value }}</li>{% endif %}
+    </ul>
+    <div class="row-actions" style="justify-content:flex-start;">
+      <a class="btn-open" href="{{ url_for('stats.dashboard', entityId=a.entity_id, attribute=a.attribute, metric='mean') }}">Ver en explorador</a>
+      <button type="button" class="outline secondary btn-ghost" data-delete-url="{{ url_for('entities.delete_alert', alert_id=a.id) }}">Eliminar</button>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+<div class="empty-hint" id="crud-empty" style="{% if alerts %}display:none;{% endif %}">
+  <p>Sin alertas definidas.</p>
+</div>
+<span id="msg" class="feedback" role="status"></span>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/form-validation.js') }}"></script>
+<script src="{{ url_for('static', filename='js/crud-list.js') }}"></script>
+{% endblock %}

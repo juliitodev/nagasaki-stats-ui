@@ -1,0 +1,139 @@
+classDiagram
+    direction TB
+
+    class AuthRoutes {
+        <<src/auth.py>>
+        +login()
+        +logout()
+    }
+
+    class StatsRoutes {
+        <<src/stats_routes.py>>
+        +dashboard()
+        +compare_page()
+        +api_stats()
+        +api_series()
+        +api_compare()
+        +api_alerts_check()
+    }
+
+    class EntitiesRoutes {
+        <<src/entities_routes.py>>
+        +save_view()
+        +save_bookmark()
+        +save_note()
+        +save_comparison()
+        +save_alert()
+        +delete_*()
+    }
+
+    class UserWorkspace {
+        <<src/user_workspace.py>>
+        +normalize_note()
+        +find_bookmark_for()
+    }
+
+    class Storage {
+        <<src/storage.py>>
+        +save_view()
+        +save_bookmark()
+        +save_note()
+        +save_comparison()
+        +save_alert()
+        +list_*()
+        +delete_bookmark()
+    }
+
+    class Catalog {
+        <<src/catalog.py>>
+        +list_entities()
+        +entity_stats()
+        +entity_ranking()
+        +entity_series()
+        +entity_compare()
+    }
+
+    class StatsEngine {
+        <<src/stats.py>>
+        +compute_stats()
+        +compare_entities()
+        +stats_to_labeled_rows()
+    }
+
+    class StatsResult {
+        +mean float
+        +median float
+        +p95 float
+        +trend_slope float
+        +outliers int
+    }
+
+    class SavedViewEntity {
+        <<src/model/savedviewdto.py>>
+        +id str
+        +owner str
+        +name str
+        +entity_id str
+        +attribute str
+        +metric str
+    }
+
+    class EntityBookmarkEntity {
+        <<src/model/entitybookmarkdto.py>>
+        +id str
+        +owner str
+        +label str
+        +entity_id str
+        +attribute str
+        +default_metric str
+    }
+
+    class DashboardNoteEntity {
+        <<src/model/dashboardnotedto.py>>
+        +id str
+        +owner str
+        +bookmark_id str
+        +text str
+        +entity_id str
+        +attribute str
+        +metric str
+    }
+
+    class SavedComparisonEntity {
+        <<src/model/savedcomparisondto.py>>
+        +id str
+        +owner str
+        +name str
+        +entity_ids str
+        +attribute str
+        +metric str
+    }
+
+    class MetricAlertEntity {
+        <<src/model/metricalertdto.py>>
+        +id str
+        +owner str
+        +name str
+        +entity_id str
+        +attribute str
+        +min_value float
+        +max_value float
+    }
+
+    AuthRoutes --> Storage
+    StatsRoutes --> Catalog
+    StatsRoutes --> Storage
+    EntitiesRoutes --> Storage
+    EntitiesRoutes --> UserWorkspace
+
+    Storage --> SavedViewEntity
+    Storage --> EntityBookmarkEntity
+    Storage --> DashboardNoteEntity
+    Storage --> SavedComparisonEntity
+    Storage --> MetricAlertEntity
+
+    UserWorkspace ..> DashboardNoteEntity
+    UserWorkspace ..> EntityBookmarkEntity
+
+    Catalog --> StatsEngine
+    StatsEngine --> StatsResult

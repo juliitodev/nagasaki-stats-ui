@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="filter-hint" style="margin:0 0 1.25rem;">
+  <strong>Marcador</strong> = atajo a una fuente y magnitud (con métrica habitual al abrir).
+  Sirve para volver rápido y para que las <strong>notas</strong> queden ancladas. No guarda el criterio del ranking (eso es una <a href="{{ url_for('stats.views_page') }}">vista</a>).
+</p>
+
+<article class="form-panel" style="margin-bottom:1.5rem;">
+  <h2 style="font-size:1rem;margin:0 0 0.75rem;">Nuevo marcador</h2>
+  <form method="post" action="{{ url_for('stats.bookmarks_page') }}">
+    <label for="bm-label-new">Etiqueta</label>
+    <input id="bm-label-new" name="label" required placeholder="Ej. Tráfico norte">
+    {% with fid = "bm-entity" %}
+    {% include "partials/entity_select.html" %}
+    {% endwith %}
+    <label for="bm-attr">Magnitud</label>
+    <input id="bm-attr" name="attribute" required placeholder="flowVehH">
+    <label for="bm-metric">Métrica habitual (opcional)</label>
+    <input id="bm-metric" name="defaultMetric" placeholder="mean" value="mean">
+    <button type="submit" class="btn-save-action btn-save-action--primary">Guardar marcador</button>
+  </form>
+</article>
+
+<div class="card-grid" data-crud-list>
+  {% for b in bookmarks %}
+  <article class="data-card" data-card>
+    <span class="data-card-type">Marcador · atajo</span>
+    <h3>{{ b.label }}</h3>
+    <ul class="data-card-metrics">
+      <li>{{ b.entity_id }}</li>
+      <li>{{ b.attribute }} · habitual: {{ b.default_metric }}</li>
+      {% set ncount = note_counts.get(b.id, 0) %}
+      {% if ncount %}
+      <li><a href="{{ url_for('stats.notes_page') }}#bm-{{ b.id }}">{{ ncount }} nota{% if ncount != 1 %}s{% endif %} enlazada{% if ncount != 1 %}s{% endif %}</a></li>
+      {% else %}
+      <li class="filter-hint" style="margin:0;">Sin notas enlazadas</li>
+      {% endif %}
+    </ul>
+    <div class="row-actions" style="justify-content:flex-start;">
+      <a class="btn-open" href="{{ url_for('stats.dashboard', entityId=b.entity_id, attribute=b.attribute, metric=b.default_metric) }}">Abrir</a>
+      <a class="outline secondary btn-ghost" href="{{ url_for('stats.notes_page') }}?hint=bookmark">Añadir nota</a>
+      <button type="button" class="outline secondary btn-ghost" data-delete-url="{{ url_for('entities.delete_bookmark', bookmark_id=b.id) }}">Eliminar</button>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+<div class="empty-hint" id="crud-empty" style="{% if bookmarks %}display:none;{% endif %}">
+  <p>Sin marcadores todavía.</p>
+</div>
+<span id="msg" class="feedback" role="status"></span>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/crud-list.js') }}"></script>
+{% endblock %}

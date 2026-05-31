@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="filter-hint" style="margin:0 0 1.25rem;max-width:640px;">
+  Selecciona dos o más fuentes con la <strong>misma magnitud</strong> y compara un indicador (como en un informe ejecutivo).
+</p>
+
+<div class="compare-grid">
+  <aside class="filter-panel">
+    <form id="compare-form" method="get" action="{{ url_for('stats.compare_page') }}">
+      <div class="filter-step">
+        <label for="cmp-attr">Magnitud</label>
+        <select id="cmp-attr" name="attribute" required>
+          {% for a, label in attribute_labels | dictsort %}
+          <option value="{{ a }}" {% if attribute == a %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-step">
+        <label for="cmp-metric">Indicador a comparar</label>
+        <select id="cmp-metric" name="metric">
+          {% for m in ranking_metrics %}
+          <option value="{{ m }}" {% if metric == m %}selected{% endif %}>{{ metric_labels.get(m, m) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-step">
+        <label>Fuentes (marca al menos 2)</label>
+        <ul class="entity-checklist" id="entity-checklist"></ul>
+      </div>
+      <button type="submit" class="btn-primary-glow" style="width:100%;">Ver comparativa</button>
+    </form>
+    <p style="margin-top:1rem;"><a href="{{ url_for('stats.dashboard') }}">← Volver a explorar</a></p>
+  </aside>
+
+  <section class="chart-panel">
+    <h2 style="margin:0 0 0.5rem;">Resultado</h2>
+    {% if compare_data and compare_data.get("items") %}
+    <p class="chart-subtitle">{{ compare_data.get("metricLabel") }} · {{ attribute_labels.get(attribute, attribute) }}</p>
+    <div class="chart-wrap">
+      <canvas id="compare-chart"></canvas>
+    </div>
+    <div class="table-wrap" style="margin-top:1.25rem;">
+      <table>
+        <thead><tr><th>Fuente</th><th>Valor</th></tr></thead>
+        <tbody>
+          {% for row in compare_data["items"] %}
+          <tr>
+            <td>{% for e in catalog_entities %}{% if e.entityId == row.entityId %}{{ e.displayName }}{% endif %}{% endfor %}</td>
+            <td><strong>{{ "%.1f"|format(row.metric) if row.metric is not string else row.metric }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <article class="form-panel" style="margin-top:1.25rem;">
+      <h3 style="font-size:0.95rem;margin:0 0 0.5rem;">Guardar esta comparativa</h3>
+      <form method="post" action="{{ url_for('stats.comparisons_page') }}">
+        <label for="save-cmp-name">Nombre</label>
+        <input id="save-cmp-name" name="name" required placeholder="Ej. Mis dos plantas">
+        <input type="hidden" name="attribute" value="{{ attribute }}">
+        <input type="hidden" name="metric" value="{{ metric }}">
+        {% for eid in selected_ids %}
+        <input type="hidden" name="entityIds" value="{{ eid }}">
+        {% endfor %}
+        <button type="submit" class="btn-save-action btn-save-action--primary">Guardar en «Comparativas»</button>
+      </form>
+    </article>
+    {% elif selected_ids|length >= 2 and compare_data and compare_data.get("error") %}
+    <p class="alert-inline">{{ compare_data.error }}</p>
+    {% else %}
+    <div class="empty-hint">
+      <p>Marca las fuentes a la izquierda y pulsa «Ver comparativa».</p>
+      <a class="btn-open" href="{{ url_for('stats.dashboard') }}">Ir al explorador</a>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if compare_data and compare_data.get("items") %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const items = {{ compare_data["items"] | tojson }};
+  const catalog = {{ catalog_entities | tojson }};
+  const name = (id) => (catalog.find((e) => e.entityId === id) || {}).displayName || id;
+  new Chart(document.getElementById("compare-chart"), {
+    type: "bar",
+    data: {
+      labels: items.map((it) => name(it.entityId)),
+      datasets: [{
+        label: {{ compare_data.get("metricLabel", "Valor") | tojson }},
+        data: items.map((it) => it.metric),
+        backgroundColor: "rgba(167,139,250,0.7)",
+        borderRadius: 6,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: "y",
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label(ctx) {
+              return `${ctx.label}: ${ctx.parsed.x.toLocaleString("es-ES", { maximumFractionDigits: 1 })}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: "#a89cc8", callback: (v) => Number(v).toLocaleString("es-ES", { maximumFractionDigits: 1 }) },
+          grid: { color: "rgba(168,85,247,0.12)" },
+        },
+        y: { ticks: { color: "#e9d5ff" } },
+      },
+    },
+  });
+})();
+</script>
+{% endif %}
+<script>
+(function () {
+  const catalog = {{ catalog_entities | tojson }};
+  const selected = new Set({{ selected_ids | tojson }});
+  const attrSel = document.getElementById("cmp-attr");
+  const list = document.getElementById("entity-checklist");
+  const form = document.getElementById("compare-form");
+
+  function renderList() {
+    const attr = attrSel.value;
+    const matching = catalog.filter((e) => e.attributes.includes(attr));
+    list.innerHTML = matching.map((e) => {
+      const checked = selected.has(e.entityId) ? " checked" : "";
+      return `<li><label><input type="checkbox" name="entityIds" value="${e.entityId}"${checked}> ${e.displayName}</label></li>`;
+    }).join("") || "<li class='empty-hint'>Ninguna fuente tiene esta magnitud.</li>";
+  }
+
+  attrSel.addEventListener("change", () => {
+    selected.clear();
+    renderList();
+  });
+  form.addEventListener("submit", (e) => {
+    const boxes = list.querySelectorAll('input[name="entityIds"]:checked');
+    if (boxes.length < 2) {
+      e.preventDefault();
+      alert("Selecciona al menos dos fuentes para comparar.");
+    }
+  });
+  renderList();
+})();
+</script>
+{% endblock %}

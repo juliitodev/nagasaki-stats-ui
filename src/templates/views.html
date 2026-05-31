@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="filter-hint" style="margin:0 0 1.25rem;">
+  <strong>Vista</strong> = consulta completa del explorador (fuente, magnitud y criterio del ranking).
+  Al pulsar «Abrir» se restaura ese estado. No sustituye a un marcador ni a una nota.
+</p>
+
+<article class="form-panel" style="margin-bottom:1.5rem;">
+  <h2 style="font-size:1rem;margin:0 0 0.75rem;">Nueva vista</h2>
+  <form method="post" action="{{ url_for('stats.views_page') }}">
+    <label for="view-name-new">Nombre</label>
+    <input id="view-name-new" name="name" required placeholder="Ej. Planta solar habitual">
+    {% with fid = "view-entity" %}
+    {% include "partials/entity_select.html" %}
+    {% endwith %}
+    <label for="view-attr">Magnitud</label>
+    <input id="view-attr" name="attribute" required placeholder="powerKw">
+    <label for="view-metric">Métrica del ranking</label>
+    <select id="view-metric" name="metric">
+      {% for m in ranking_metrics %}
+      <option value="{{ m }}">{{ metric_labels.get(m, m) }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn-save-action btn-save-action--primary">Guardar vista</button>
+  </form>
+</article>
+
+<div class="card-grid" data-crud-list>
+  {% for v in views %}
+  <article class="data-card" data-card>
+    <span class="data-card-type">Vista · consulta completa</span>
+    <h3>{{ v.name }}</h3>
+    <ul class="data-card-metrics">
+      <li>{{ v.entity_id }}</li>
+      <li>{{ v.attribute }} · ranking: {{ metric_labels.get(v.metric, v.metric) }}</li>
+    </ul>
+    <div class="row-actions" style="justify-content:flex-start;">
+      <a class="btn-open" href="{{ url_for('stats.dashboard', entityId=v.entity_id, attribute=v.attribute, metric=v.metric) }}">Abrir explorador</a>
+      <button type="button" class="outline secondary btn-ghost" data-delete-url="{{ url_for('entities.delete_view', view_id=v.id) }}">Eliminar</button>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+<div class="empty-hint" id="crud-empty" style="{% if views %}display:none;{% endif %}">
+  <p>Aún no tienes vistas.</p>
+  <a class="btn-open" href="{{ url_for('stats.dashboard') }}">Ir a explorar</a>
+</div>
+<span id="msg" class="feedback" role="status"></span>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/crud-list.js') }}"></script>
+{% endblock %}

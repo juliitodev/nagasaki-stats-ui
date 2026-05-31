@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="filter-hint" style="margin:0 0 1.25rem;">
+  <strong>Nota</strong> = comentario del analista (texto libre) anclado a un <strong>marcador</strong>
+  o a una fuente+magnitud. No abre el explorador por sí sola: enlaza con un <a href="{{ url_for('stats.bookmarks_page') }}">marcador</a> o con la consulta que tenías al guardarla.
+</p>
+
+<article class="form-panel" style="margin-bottom:1.5rem;">
+  <h2 style="font-size:1rem;margin:0 0 0.75rem;">Nueva nota</h2>
+  <form method="post" action="{{ url_for('stats.notes_page') }}">
+    <label for="note-text-new">Texto</label>
+    <textarea id="note-text-new" name="text" rows="3" required placeholder="Ej. La media sube los fines de semana…"></textarea>
+    <label for="note-bm">Marcador (recomendado)</label>
+    <select id="note-bm" name="bookmarkId">
+      <option value="">— Sin elegir (usa fuente + magnitud abajo) —</option>
+      {% for b in bookmarks %}
+      <option value="{{ b.id }}">{{ b.label }} ({{ b.entity_id }})</option>
+      {% endfor %}
+    </select>
+    {% with fid = "note-entity", required = false %}
+    {% include "partials/entity_select.html" %}
+    {% endwith %}
+    <label for="note-attr">Magnitud (si no hay marcador)</label>
+    <input id="note-attr" name="attribute" placeholder="powerKw">
+    <p class="filter-hint">Si ya existe un marcador para esa fuente y magnitud, la nota se enlazará sola.</p>
+    <button type="submit" class="btn-save-action btn-save-action--primary">Guardar nota</button>
+  </form>
+</article>
+
+<div class="card-grid" data-crud-list>
+  {% for n in notes %}
+  <article class="data-card" data-card id="{% if n.bookmark_id %}bm-{{ n.bookmark_id }}{% else %}note-{{ n.id }}{% endif %}">
+    <span class="data-card-type">Nota · anclada a {{ n.anchor_type }}</span>
+    <p style="margin:0.5rem 0 0.75rem;line-height:1.5;">{{ n.text }}</p>
+    <ul class="data-card-metrics">
+      <li>Anclaje: <strong>{{ n.anchor_label }}</strong></li>
+      {% if n.metric %}
+      <li>Contexto al guardar: {{ n.attribute }} · {{ metric_labels.get(n.metric, n.metric) if metric_labels is defined else n.metric }}</li>
+      {% endif %}
+    </ul>
+    <div class="row-actions" style="justify-content:flex-start;">
+      {% if n.entity_id and n.attribute %}
+      <a class="btn-open" href="{{ url_for('stats.dashboard', entityId=n.entity_id, attribute=n.attribute, metric=n.metric or 'mean') }}">Ver en explorador</a>
+      {% endif %}
+      <button type="button" class="outline secondary btn-ghost" data-delete-url="{{ url_for('entities.delete_note', note_id=n.id) }}">Eliminar</button>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+<div class="empty-hint" id="crud-empty" style="{% if notes %}display:none;{% endif %}">
+  <p>Sin notas.</p>
+  <a class="btn-open" href="{{ url_for('stats.dashboard') }}">Crear una desde explorar</a>
+</div>
+<span id="msg" class="feedback" role="status"></span>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/crud-list.js') }}"></script>
+{% endblock %}

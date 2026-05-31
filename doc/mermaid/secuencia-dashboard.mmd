@@ -1,0 +1,26 @@
+sequenceDiagram
+    actor U as Usuario
+    participant B as Navegador
+    participant JS as dashboard.js
+    participant SR as stats_routes
+    participant C as catalog
+    participant ST as stats.py
+
+    U->>B: GET /dashboard
+    B->>SR: sesión autenticada
+    SR->>C: entity_stats + entity_ranking
+    C->>ST: compute_stats / ranking
+    ST-->>C: KPIs y filas ranking
+    SR-->>B: HTML (filtros: tipo, fuente, magnitud)
+    Note over B: Criterio ranking en panel lateral
+
+    U->>B: cambia tipo / fuente / magnitud / métrica ranking
+    B->>JS: change handlers
+    JS->>SR: GET /api/stats?entityId&attribute&metric
+    SR->>C: entity_stats + entity_ranking
+    C-->>SR: JSON stats + ranking
+    SR-->>JS: datos
+    JS->>SR: GET /api/series?...
+    SR-->>JS: serie temporal
+    JS-->>B: Chart.js + KPIs + lista ranking
+    B-->>U: panel actualizado sin recarga completa

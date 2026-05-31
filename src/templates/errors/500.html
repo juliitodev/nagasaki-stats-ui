@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<article class="panel">
+  <h1>Error interno</h1>
+  <p>Ha ocurrido un problema inesperado. Puedes volver al panel e intentar de nuevo.</p>
+  <p><a href="{{ url_for('stats.dashboard') }}" class="btn-open">Volver al panel</a></p>
+</article>
+{% endblock %}

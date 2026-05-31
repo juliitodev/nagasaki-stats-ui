@@ -1,0 +1,9 @@
+{% with msgs = get_flashed_messages(with_categories=true) %}
+  {% if msgs %}
+  <div class="flash-stack" role="status">
+    {% for cat, m in msgs %}
+    <p class="{% if cat == 'error' %}alert-inline{% else %}alert-success{% endif %}">{{ m }}</p>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}

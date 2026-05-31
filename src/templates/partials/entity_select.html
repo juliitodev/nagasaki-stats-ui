@@ -1,0 +1,9 @@
+<label for="{{ fid }}">Fuente de datos</label>
+<select id="{{ fid }}" name="entityId"{% if required is not defined or required %} required{% endif %}>
+  {% if required is defined and not required %}
+  <option value="">— Sin contexto —</option>
+  {% endif %}
+  {% for e in catalog_entities %}
+  <option value="{{ e.entityId }}">{{ e.displayName }}</option>
+  {% endfor %}
+</select>

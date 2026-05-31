@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="explorer-layout" id="explorer">
+  <aside class="filter-panel">
+    <h2>¿Qué quieres analizar?</h2>
+    <p class="filter-hint" style="margin-top:0;">Elige tipo, fuente y magnitud. Los resultados se actualizan solos.</p>
+
+    <form id="query-form" class="filter-steps">
+      <div class="filter-step">
+        <label for="sel-type">1. Tipo de entidad</label>
+        <select id="sel-type" required aria-describedby="filter-type-hint">
+          {% for t in ['SolarPlant', 'TrafficSensor'] %}
+            {% set group = catalog_entities | selectattr('type', 'equalto', t) | list %}
+            {% if group %}
+            <option value="{{ t }}">{{ group[0].typeLabel }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+        <p class="filter-hint" id="filter-type-hint">Planta solar o sensor de tráfico.</p>
+      </div>
+      <div class="filter-step">
+        <label for="sel-entity">2. Fuente de datos</label>
+        <select id="sel-entity" name="entityId" required></select>
+        <p class="filter-hint">Fuentes del tipo elegido.</p>
+      </div>
+      <div class="filter-step">
+        <label for="sel-attr">3. Magnitud</label>
+        <select id="sel-attr" name="attribute" required></select>
+        <p class="filter-hint">Variable medida en el tiempo (potencia, caudal, etc.).</p>
+      </div>
+    </form>
+  </aside>
+
+  <section class="chart-panel" id="chart-panel">
+    <div class="chart-panel-header">
+      <div>
+        <h2 id="chart-title">Serie temporal</h2>
+        <p class="chart-subtitle" id="chart-subtitle">—</p>
+      </div>
+      <a href="{{ url_for('stats.compare_page') }}" class="btn-open" id="link-compare">Comparar con otras</a>
+    </div>
+    <div class="chart-stats-bar" id="chart-stats-bar" aria-live="polite"></div>
+    <div class="chart-wrap chart-wrap--tall" id="series-chart-wrap" aria-busy="false">
+      <canvas id="series-chart" aria-label="Gráfico de evolución en el tiempo"></canvas>
+    </div>
+    <p class="chart-legend-hint">Área sombreada: rango mín–máx · Línea continua: serie · Punteada: media móvil y media global</p>
+    <div class="insight-banner" id="insight-banner" {% if not stats_data.get("insight") %}hidden{% endif %}>
+      <span id="insight-text">{{ stats_data.get("insight", "") }}</span>
+    </div>
+    <div class="kpi-grid" id="kpi-grid">
+      {% for row in stats_data.get("labeledStats", []) %}
+      <div class="kpi-card">
+        <span class="kpi-label">{{ row.label }}</span>
+        <span class="kpi-value">{{ row.value }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <aside class="explorer-side">
+    <section class="save-panel" aria-labelledby="save-panel-title">
+      <h2 id="save-panel-title">Guardar en tu espacio</h2>
+      <p class="save-panel-lead">Vista, marcador o nota sobre la consulta actual.</p>
+
+      <div class="save-block save-block--view">
+        <span class="save-kind">Vista</span>
+        <p class="save-hint">Fuente, magnitud y criterio del ranking.</p>
+        <label for="view-name">Nombre</label>
+        <input type="text" id="view-name" class="save-input" placeholder="Ej. Planta 1 · potencia · media">
+        <button type="button" class="btn-save-action btn-save-action--primary" id="btn-save-view">Guardar vista</button>
+      </div>
+
+      <div class="save-block save-block--bookmark">
+        <span class="save-kind">Marcador</span>
+        <p class="save-hint">Atajo a fuente y magnitud.</p>
+        <label for="bm-label">Etiqueta</label>
+        <input type="text" id="bm-label" class="save-input" placeholder="Ej. Tráfico norte">
+        <button type="button" class="btn-save-action btn-save-action--primary" id="btn-save-bookmark">Guardar marcador</button>
+      </div>
+
+      <div class="save-block save-block--note">
+        <span class="save-kind">Nota</span>
+        <p class="save-hint">Comentario; se enlaza al marcador si existe.</p>
+        <label for="note-text">Texto</label>
+        <textarea id="note-text" class="save-input save-textarea" rows="1" placeholder="Ej. Pico vespertino…"></textarea>
+        <button type="button" class="btn-save-action btn-save-action--primary" id="btn-save-note">Guardar nota</button>
+      </div>
+
+      <p id="msg" class="feedback" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="ranking-panel" aria-labelledby="ranking-title">
+    <div class="ranking-panel-head">
+      <h2 id="ranking-title">Ranking</h2>
+      <div class="ranking-metric-field">
+        <label for="sel-metric">Criterio</label>
+        <select id="sel-metric" name="metric" aria-describedby="ranking-metric-hint">
+          {% for m in ranking_metrics %}
+          <option value="{{ m }}" {% if metric == m %}selected{% endif %}>{{ metric_labels.get(m, m) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <p class="filter-hint" id="ranking-metric-hint">Clic en una fila para cambiar la fuente activa.</p>
+    <ol class="ranking-list" id="ranking-list">
+      {% for row in ranking_data.get("ranking", []) %}
+      <li class="ranking-item {% if row.entityId == entity_id %}is-selected{% endif %}" data-entity-id="{{ row.entityId }}" tabindex="0">
+        <span class="ranking-rank">{{ loop.index }}</span>
+        <span class="ranking-name">{% for e in catalog_entities %}{% if e.entityId == row.entityId %}{{ e.displayName }}{% endif %}{% endfor %}</span>
+        <span class="ranking-value">{{ row.metric }}</span>
+      </li>
+      {% else %}
+      <li class="empty-hint">Sin datos de ranking.</li>
+      {% endfor %}
+    </ol>
+    </section>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  window.__CATALOG__ = {{ catalog_entities | tojson }};
+  window.__INITIAL__ = {
+    entityId: {{ entity_id | tojson }},
+    attribute: {{ attribute | tojson }},
+    metric: {{ metric | tojson }},
+    attributeLabels: {{ attribute_labels | tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

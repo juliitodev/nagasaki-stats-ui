@@ -1,0 +1,51 @@
+# Aplicación: docker compose up --build  (ver doc/memoria.md §3)
+# UI Redis (opcional): docker compose --profile tools up -d
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: nagasaki-analytics-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+  nagasaki-analytics:
+    build: .
+    container_name: nagasaki-analytics-app
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "3080:3080"
+    environment:
+      SECRET_KEY: changeme-demo
+      REDIS_URL: redis://redis:6379/0
+      DEMO_USER: profesor
+      DEMO_PASSWORD: profesor123
+      CATALOG_SEED_PATH: src/data/demo_seed.json
+      REDIS_WAIT_SECONDS: "90"
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: nagasaki-analytics-redis-ui
+    profiles: ["tools"]
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+
+volumes:
+  redis-data:

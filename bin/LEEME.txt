@@ -1,0 +1,61 @@
+Requisitos en el equipo del corrector
+-------------------------------------
+- Docker y Docker Compose instalados y en marcha.
+- Puertos libres: 3080 (aplicación) y 6379 (Redis).
+
+Arranque rápido
+---------------
+Linux / macOS (desde bin/):
+
+    ./arrancar.sh
+
+Windows (doble clic o desde cmd en bin/):
+
+    arrancar.bat
+
+O manualmente (desde la raíz del proyecto dentro del ZIP, carpeta src/):
+
+    cd ..\src
+    docker compose up --build
+
+Acceso
+------
+URL:      http://localhost:3080
+Usuario:  profesor
+Clave:    profesor123
+
+Parada (conserva lo guardado en Redis)
+--------------------------------------
+Linux / macOS:  ./detener.sh
+Windows:        detener.bat
+
+Equivalente:    docker compose down
+
+Reset completo (borra vistas, marcadores, notas)
+------------------------------------------------
+Linux / macOS:  ./limpiar.sh
+Windows:        limpiar.bat
+
+Solo para dejar el equipo limpio tras corregir la practica.
+Usa: docker compose --profile tools down -v --rmi local
+
+Arranque sin Docker (alternativa)
+---------------------------------
+Ver doc/memoria.pdf, sección 3.3. Requiere Python 3, Redis local y:
+
+    pip install -r requirements.txt
+
+Linux / macOS:
+
+    export FLASK_APP=src.app REDIS_URL=redis://localhost:6379/0
+    flask run --host 0.0.0.0 --port 3080
+
+Windows (cmd):
+
+    set FLASK_APP=src.app
+    set REDIS_URL=redis://localhost:6379/0
+    flask run --host 0.0.0.0 --port 3080
+
+Repositorio del código fuente
+-----------------------------
+Indicado en doc/info.txt del ZIP.

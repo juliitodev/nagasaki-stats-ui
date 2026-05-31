@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="filter-hint" style="margin:0 0 1rem;">Elige una fuente para abrir el explorador con sus magnitudes disponibles.</p>
+
+<div class="catalog-toolbar">
+  <input type="search" id="catalog-search" class="catalog-search" placeholder="Buscar por nombre…" aria-label="Buscar fuentes">
+  <select id="catalog-type" aria-label="Filtrar por tipo">
+    <option value="">Todos los tipos</option>
+    <option value="SolarPlant">Plantas solares</option>
+    <option value="TrafficSensor">Sensores de tráfico</option>
+  </select>
+  <span class="topbar-badge" id="catalog-visible">{{ entities|length }} fuentes</span>
+</div>
+
+<div class="card-grid" id="card-grid">
+  {% for e in entities %}
+  <article class="data-card" data-type="{{ e.type }}" data-name="{{ e.displayName|lower }}">
+    <span class="data-card-type">{{ e.typeLabel }}</span>
+    <h3>{{ e.displayName }}</h3>
+    <ul class="data-card-metrics">
+      {% for attr in e.attributes %}
+      <li>{{ e.attributeLabels.get(attr, attr) }} · último: {{ e.latestAttrs.get(attr, "—") }}</li>
+      {% endfor %}
+    </ul>
+    <p style="margin:0 0 0.75rem;font-size:0.8rem;color:var(--app-muted);">{{ e.points }} mediciones</p>
+    {% if e.attributes %}
+    <a class="btn-open" href="{{ url_for('stats.dashboard', entityId=e.entityId, attribute=e.attributes[0], metric='mean') }}">Explorar</a>
+    {% endif %}
+  </article>
+  {% else %}
+  <p class="empty-hint">No hay fuentes en el catálogo.</p>
+  {% endfor %}
+</div>
+<script>
+(function () {
+  const search = document.getElementById("catalog-search");
+  const type = document.getElementById("catalog-type");
+  const cards = document.querySelectorAll(".data-card");
+  const counter = document.getElementById("catalog-visible");
+  function apply() {
+    const q = search.value.trim().toLowerCase();
+    const t = type.value;
+    let n = 0;
+    cards.forEach((c) => {
+      const ok = (!t || c.dataset.type === t) && (!q || c.dataset.name.includes(q));
+      c.style.display = ok ? "" : "none";
+      if (ok) n++;
+    });
+    counter.textContent = n + " visibles";
+  }
+  search.addEventListener("input", apply);
+  type.addEventListener("change", apply);
+})();
+</script>
+{% endblock %}
